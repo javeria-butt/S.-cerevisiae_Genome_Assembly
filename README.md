@@ -104,4 +104,54 @@ GenomeScope2 fits a mathematical model to the k-mer histogram to estimate genome
 <img width="2000" height="2000" alt="genomescope_linear_plot" src="https://github.com/user-attachments/assets/8d6868b8-b45b-4e6d-afa4-13ae1932906d" />
 *Reading this plot: First peak at ~25× = heterozygous k-mers (one chromosome copy). Second peak at ~50× = homozygous k-mers (both copies). Orange = sequencing errors. Black model line fits blue observed data at 96.5% — results are trustworthy.*
 
+**Transformed Linear Profile:**
+<img width="2000" height="2000" alt="genomescope_transformed_linear_plot" src="https://github.com/user-attachments/assets/e157a5ae-2830-4147-a08d-2f1dc9ecb0be" />
+*Multiplying frequency × coverage amplifies the homozygous peak, making the diploid structure easier to see. Reports: len=11,743,432 bp, ab=0.58%, aa=99.4%, kcov=25, err=0.000943%.*
+
+**Log Scale Views:**
+Linear Log
+<img width="2000" height="2000" alt="genomescope_log_plot" src="https://github.com/user-attachments/assets/de343865-bde1-407e-a7ee-42e94e5ffceb" />
+Transformed Log
+<img width="2000" height="2000" alt="genomescope_transformed_log_plot" src="https://github.com/user-attachments/assets/047b1f96-5951-42f0-a6fc-bdd9b516cf46" />
+
+**Summary Statistics**
+| Property | Min | Max |
+| :--- | :--- | :--- |
+| **Homozygous (aa)** | 99.4165% | 99.4241% |
+| **Heterozygous (ab)** | 0.575891% | 0.583546% |
+| **Genome Haploid Length** | 11,739,513 bp | 11,747,352 bp |
+| **Genome Unique Length** | 11,016,399 bp | 11,023,756 bp |
+| **Model Fit** | 92.5159% | 96.5191% |
+| **Read Error Rate** | 0.000943190% | 0.000943190% |
+
+## BUSCO — Gene Completeness
+BUSCO searches for 2,137 conserved genes expected in every Saccharomycetes genome. High completeness (>95%) and low duplication (<5%) confirm a high-quality assembly with no false duplications.
+**Hap1 — 95.9% Complete**
+<img width="2000" height="1499" alt="busco_hap1" src="https://github.com/user-attachments/assets/72b7c913-27dd-4e72-ba7d-41047169d223" />
+*C:95.9% [S:94.1%, D:1.8%], F:2.7%, M:1.4%, n:2137 — The bar is almost entirely light blue (complete single-copy genes). Very small dark blue (duplicated) and red (missing) segments confirm an excellent assembly.*
+
+**Hap2 — 89.0% Complete**
+<img width="2000" height="1499" alt="busco_hap2" src="https://github.com/user-attachments/assets/6a449c4d-5995-4b9d-89bc-9c65b9ac744a" />
+*C:89.0% [S:87.6%, D:1.4%], F:2.5%, M:8.5%, n:2137 — Slightly lower completeness is expected for the alternate haplotype. Low duplication (1.4%) confirms no false duplications.*
+
+**Comparison Table**
+| Category | Hap1 | Hap1 % | Hap2 | Hap2 % |
+| :--- | :--- | :--- | :--- | :--- |
+| **Complete single-copy (S)** | 2010 | 94.1% | 1871 | 87.6% |
+| **Complete duplicated (D)** | 40 | 1.8% | 31 | 1.4% |
+| **Complete total (C)** | 2050 | 95.9% | 1902 | 89.0% |
+| **Fragmented (F)** | 57 | 2.7% | 54 | 2.5% |
+| **Missing (M)** | 30 | 1.4% | 181 | 8.5% |
+
+## Merqury — K-mer Quality
+Merqury compares k-mers in reads vs assembly — completely reference-free. Combined completeness of 99.9999% means virtually every k-mer in the reads is represented in one of the two assemblies.
+
+**Completeness Statistics**
+| Assembly | K-mers found | Total k-mers | Completeness |
+| :--- | :--- | :--- | :--- |
+| **Hap1** | 10,792,811 | 13,010,260 | 82.96% |
+| **Hap2** | 11,611,483 | 13,010,260 | 89.25% |
+| **Both** | 13,010,244 | 13,010,260 | 99.9999% |
+
+
 
