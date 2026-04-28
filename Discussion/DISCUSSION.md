@@ -1,4 +1,4 @@
-# Genome Assembly Report: *Saccharomyces cerevisiae* S288C
+# Discussion
 
 ## Overview
 The primary goal of this tutorial was to assemble a high-quality, chromosome-level genome of **Saccharomyces cerevisiae S288C** from synthetic PacBio HiFi reads, using a multi-technology pipeline combining HiFi long reads, Bionano optical maps, and Illumina Hi-C chromatin conformation data. Overall, the assembly was highly successful and the final result closely matches the known reference genome, validating both the data quality and the VGP pipeline methodology.
