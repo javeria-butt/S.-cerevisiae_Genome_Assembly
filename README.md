@@ -2,156 +2,160 @@
 
 This project demonstrates a chromosome-level *de novo* assembly of the *S. cerevisiae* (strain S288C) genome. The workflow utilizes the **Vertebrate Genomes Project (VGP)** standards, executed via the Galaxy Europe platform. 
 
-By integrating long-read sequencing, chromatin conformation capture, and optical mapping, this pipeline achieves a highly contiguous and phased diploid assembly.
+**Tutorial Source:** [Galaxy Training Network — VGP Genome Assembly](https://training.galaxyproject.org/training-material/topics/assembly/tutorials/vgp_genome_assembly/tutorial.html)  
+**Platform:** Galaxy  
+**Model Organism:** *Saccharomyces cerevisiae* S288C (synthetic diploid reads)
 
 ---
 
-## 📑 Project Navigation
-* [Core Methodology](#core-methodology)
-* [Workflow Architecture](#workflow-architecture)
-* [Data Sources](#data-sources)
-* [Software Stack](#software-stack)
-* [Key Metrics & QC](#key-metrics--qc)
-* [Project Structure](#project-structure)
+## 📋 Table of Contents
+1. [Overview](#overview)
+2. [Pipeline Summary](#pipeline-summary)
+3. [Tools Used](#tools-used)
+4. [Data](#data)
+5. [Step-by-Step Workflow](#step-by-step-workflow)
+6. [Key Results](#key-results)
+7. [File Structure](#file-structure)
+8. [Glossary](#glossary)
+9. [References](#references)
 
 ---
 
-## Core Methodology
-The assembly leverages the VGP "gold standard" approach, which utilizes three distinct data modalities to overcome the limitations of single-technology sequencing:
+## Overview
+This repository documents the completion of the **Vertebrate Genomes Project (VGP)** genome assembly tutorial. The goal is to assemble a high-quality, chromosome-level genome using a multi-technology approach.
 
-| Technology | Data Type | Primary Utility |
-| :--- | :--- | :--- |
-| **PacBio HiFi** | SMRT Reads (>Q20) | Initial contig generation and accuracy |
-| **Illumina Hi-C** | Chromatin Capture | Haplotype phasing and long-range scaffolding |
-| **Bionano** | Optical Maps | Physical-map validation and scaffolding |
-
----
-
-## Workflow Architecture
-
-### Stage 1: Pre-processing & Profiling
-1. **Trimming:** Removal of sequencing adapters using `Cutadapt`.
-2. **K-mer Analysis:** Generation of k-mer databases and histograms via `Meryl`.
-3. **Estimation:** Statistical estimation of genome size and heterozygosity using `GenomeScope2`.
-
-### Stage 2: Diploid Assembly
-* **Contig Construction:** Executed `Hifiasm` in Hi-C phased mode to produce primary and alternate assemblies.
-* **Conversion:** Processed GFA outputs into FASTA format with `Gfastats` for downstream analysis.
-
-### Stage 3: Scaffolding & Refinement
-* **Hybrid Scaffolding:** Integration of Bionano optical maps.
-* **Hi-C Integration:** Mapping of Hi-C reads using `BWA-MEM`, followed by chimeric read filtering.
-* **Proximity Scaffolding:** Final chromosome-level ordering using `YaHS` and visualization through `PretextMap`.
-
-### Stage 4: Quality Assessment
-* **Ortholog Analysis:** Evaluating gene completeness with `BUSCO`.
-* **K-mer Validation:** Assessing assembly consensus and phasing via `Merqury`.
-
----
-
-## Data Sources
-All datasets were retrieved from **Zenodo** repositories:
-
-* **HiFi Reads:** Synthetic 50× coverage (simulated via HIsim with a 2% mutation rate). [Zenodo: 6098306]
-* **Hi-C Reads:** Paired-end Illumina data (SRR7126301). [Zenodo: 5550653]
-* **Optical Map:** Bionano CMAP data. [Zenodo: 5887339]
-
----
-
-## Software Stack
-| Tool | Version | Role |
-| :--- | :--- | :--- |
-| `Cutadapt` | 5.2 | Adapter removal |
-| `Meryl` | 1.3 | K-mer indexing |
-| `GenomeScope2` | 2.0 | Genomic profiling |
-| `Hifiasm` | 0.19.8 | *De novo* Assembler |
-| `Gfastats` | 1.3.6 | Summary Statistics |
-| `BUSCO` | 5.5.0 | Biological completeness |
-| `Merqury` | 1.3 | K-mer QV & Completeness |
-| `Bionano Hybrid` | 3.7.0 | Optical Scaffolding |
-| `BWA-MEM` | 2.2.1 | Read Alignment |
-| `YaHS` | 1.2a.2 | Hi-C Scaffolding |
-
----
-
-## Key Metrics & QC
-The final assembly successfully resolved the genome into its expected **16 chromosomes** with a total length of approximately **11.7 Mb**.
-
-| Metric | Result |
+| Technology | Purpose |
 | :--- | :--- |
-| **Heterozygosity** | 0.58% |
-| **Hap1 Contig N50** | ~922 kb |
-| **Hap2 Contig N50** | ~923 kb |
-| **BUSCO (Saccharomycetes)** | 95.9% (Hap1) |
-| **Merqury Completeness** | 99.99% |
-| **Assembly Level** | Chromosome-level |
+| **PacBio HiFi** | Primary long-read assembly (10–25 kbp reads, ≥99% accuracy) |
+| **Bionano Optical Maps** | Long-range scaffolding, resolves large structural regions |
+| **Illumina Hi-C** | Chromosome-scale scaffolding using chromatin conformation |
+
+The organism is *S. cerevisiae* S288C (~12 Mb haploid genome), ideal for benchmarking assembly quality.
 
 ---
 
-## Repository Structure
+## Pipeline Summary
 ```text
-.
-├── configs/          # Galaxy workflow configurations
-├── reports/          # BUSCO, Merqury, and GenomeScope outputs
-├── visualization/    # Hi-C contact maps (Pretext snapshots)
-└── README.md         # Project documentation
+Raw HiFi reads
+      │
+      ▼
+[Cutadapt] — adapter removal
+      │
+      ▼
+[Meryl + GenomeScope2] — k-mer profiling → genome size, heterozygosity
+      │
+      ▼
+[hifiasm (Hi-C mode)] — contig assembly → Hap1 & Hap2 GFA graphs
+      │
+      ▼
+[gfastats + BUSCO + Merqury] — assembly QC
+      │
+      ▼
+[Bionano Hybrid Scaffold] — optical map scaffolding
+      │
+      ▼
+[BWA-MEM2 + YaHS] — Hi-C scaffolding → chromosome-scale assembly
+      │
+      ▼
+[PretextMap + Pretext Snapshot] — final Hi-C contact map QC
 ```
-## GenomeScope2 — Genome Profile
+## Tools Used
 
-GenomeScope2 fits a mathematical model to the k-mer histogram to estimate genome properties before assembly begins.
-
-**Linear Profile:**
-<img width="2000" height="2000" alt="genomescope_linear_plot" src="https://github.com/user-attachments/assets/8d6868b8-b45b-4e6d-afa4-13ae1932906d" />
-*Reading this plot: First peak at ~25× = heterozygous k-mers (one chromosome copy). Second peak at ~50× = homozygous k-mers (both copies). Orange = sequencing errors. Black model line fits blue observed data at 96.5% — results are trustworthy.*
-
-**Transformed Linear Profile:**
-<img width="2000" height="2000" alt="genomescope_transformed_linear_plot" src="https://github.com/user-attachments/assets/e157a5ae-2830-4147-a08d-2f1dc9ecb0be" />
-*Multiplying frequency × coverage amplifies the homozygous peak, making the diploid structure easier to see. Reports: len=11,743,432 bp, ab=0.58%, aa=99.4%, kcov=25, err=0.000943%.*
-
-**Log Scale Views:**
-Linear Log
-<img width="2000" height="2000" alt="genomescope_log_plot" src="https://github.com/user-attachments/assets/de343865-bde1-407e-a7ee-42e94e5ffceb" />
-Transformed Log
-<img width="2000" height="2000" alt="genomescope_transformed_log_plot" src="https://github.com/user-attachments/assets/047b1f96-5951-42f0-a6fc-bdd9b516cf46" />
-
-**Summary Statistics**
-| Property | Min | Max |
+| Tool | Version | Purpose |
 | :--- | :--- | :--- |
-| **Homozygous (aa)** | 99.4165% | 99.4241% |
-| **Heterozygous (ab)** | 0.575891% | 0.583546% |
-| **Genome Haploid Length** | 11,739,513 bp | 11,747,352 bp |
-| **Genome Unique Length** | 11,016,399 bp | 11,023,756 bp |
-| **Model Fit** | 92.5159% | 96.5191% |
-| **Read Error Rate** | 0.000943190% | 0.000943190% |
+| **Cutadapt** | 4.4 | Adapter trimming / removal |
+| **Meryl** | 1.3 | k-mer counting |
+| **GenomeScope2** | 2.0 | Genome size and heterozygosity estimation |
+| **hifiasm** | 0.19.8 | De novo phased contig assembly |
+| **gfastats** | 1.3.6 | Assembly statistics |
+| **BUSCO** | 5.5.0 | Gene completeness assessment |
+| **Merqury** | 1.3 | k-mer based QV and completeness |
+| **Bionano Hybrid Scaffold** | 3.7.0 | Optical map scaffolding |
+| **BWA-MEM2** | 2.2.1 | Hi-C read mapping |
+| **YaHS** | 1.2a.2 | Hi-C scaffolding |
+| **PretextMap** | 0.1.9 | Contact map generation |
 
-## BUSCO — Gene Completeness
-BUSCO searches for 2,137 conserved genes expected in every Saccharomycetes genome. High completeness (>95%) and low duplication (<5%) confirm a high-quality assembly with no false duplications.
-**Hap1 — 95.9% Complete**
-<img width="2000" height="1499" alt="busco_hap1" src="https://github.com/user-attachments/assets/72b7c913-27dd-4e72-ba7d-41047169d223" />
-*C:95.9% [S:94.1%, D:1.8%], F:2.7%, M:1.4%, n:2137 — The bar is almost entirely light blue (complete single-copy genes). Very small dark blue (duplicated) and red (missing) segments confirm an excellent assembly.*
+---
 
-**Hap2 — 89.0% Complete**
-<img width="2000" height="1499" alt="busco_hap2" src="https://github.com/user-attachments/assets/6a449c4d-5995-4b9d-89bc-9c65b9ac744a" />
-*C:89.0% [S:87.6%, D:1.4%], F:2.5%, M:8.5%, n:2137 — Slightly lower completeness is expected for the alternate haplotype. Low duplication (1.4%) confirms no false duplications.*
+## Data
 
-**Comparison Table**
-| Category | Hap1 | Hap1 % | Hap2 | Hap2 % |
-| :--- | :--- | :--- | :--- | :--- |
-| **Complete single-copy (S)** | 2010 | 94.1% | 1871 | 87.6% |
-| **Complete duplicated (D)** | 40 | 1.8% | 31 | 1.4% |
-| **Complete total (C)** | 2050 | 95.9% | 1902 | 89.0% |
-| **Fragmented (F)** | 57 | 2.7% | 54 | 2.5% |
-| **Missing (M)** | 30 | 1.4% | 181 | 8.5% |
+All input data is sourced from Zenodo:
+* **HiFi Reads:** [50x Synthetic Reads](https://zenodo.org/record/6098306)
+* **Hi-C Reads:** [Illumina PE Reads](https://zenodo.org/record/5550653)
+* **Bionano Map:** [CMAP file](https://zenodo.org/records/5887339)
 
-## Merqury — K-mer Quality
-Merqury compares k-mers in reads vs assembly — completely reference-free. Combined completeness of 99.9999% means virtually every k-mer in the reads is represented in one of the two assemblies.
+---
 
-**Completeness Statistics**
-| Assembly | K-mers found | Total k-mers | Completeness |
-| :--- | :--- | :--- | :--- |
-| **Hap1** | 10,792,811 | 13,010,260 | 82.96% |
-| **Hap2** | 11,611,483 | 13,010,260 | 89.25% |
-| **Both** | 13,010,244 | 13,010,260 | 99.9999% |
+## Step-by-Step Workflow
 
+### 1. Data Upload & Preprocessing
+* **Action:** Grouped HiFi files into a "Dataset Collection".
+* **Cutadapt:** Used to discard reads containing adapters (`ATCTCTCT...` sequence).
+* **Logic:** Reads with internal adapters are likely chimeric and must be removed entirely to prevent downstream misassemblies.
 
+### 2. Genome Profile Analysis
+* **Meryl:** Counted k-mers using a k-mer size of 31.
+* **GenomeScope2:** Estimated the haploid size at **~11.7 Mb** and heterozygosity at **~0.576%**. The model fit was **>93%**, confirming high-quality input data.
 
+### 3. Assembly with hifiasm
+* **Mode:** Hi-C phased mode (`--hic`).
+* **Result:** Generated two haplotype-resolved graphs (**Hap1** and **Hap2**). This approach prevents the "collapsed" assembly issues common in diploid organism workflows.
+
+### 4. Assembly Evaluation
+* **gfastats:** Confirmed ~16-17 contigs per haplotype, aligning with the expected yeast karyotype.
+* **BUSCO:** Demonstrated high gene completeness against the *Saccharomycetes* lineage database.
+* **Merqury:** Verified high base-level accuracy (QV) and correct k-mer distribution between phased haplotypes.
+
+### 5. Scaffolding with Bionano
+* **Action:** Integrated in-silico sequence maps with physical Bionano optical maps.
+* **Impact:** Resolved complex regions where sequence-based assembly stalled, specifically across large tandem repeats.
+
+### 6. Scaffolding with Hi-C (YaHS)
+* **Mapping:** Hi-C reads were mapped individually via **BWA-MEM2** to handle the variable insert sizes characteristic of chromatin capture.
+* **YaHS:** Ordered and oriented the Bionano scaffolds into 17 final chromosome-scale units.
+* **Correction:** Hi-C data successfully identified and flipped contigs that were misoriented during previous steps.
+
+### 7. Final Evaluation
+* The final Hi-C contact map produced via **Pretext** showed clear, concentrated triangular blocks along the diagonal.
+* **Result:** Final assembly consists of **17 scaffolds** (representing the 16 nuclear chromosomes + 1 mitochondrial DNA).
+
+---
+
+## Key Results
+
+| Metric | Value |
+| :--- | :--- |
+| **Estimated Genome Size** | ~11.7 Mb |
+| **Final # Scaffolds** | 17 |
+| **BUSCO Completeness** | High |
+| **Reference Match** | Near-identical contact map topology |
+
+---
+
+## File Structure
+
+```text
+vgp-genome-assembly/
+├── README.md                    ← Main documentation
+├── Methods/                     ← Detailed tool parameters
+├── Results/                     ← BUSCO summaries, stats, and plots
+├── Parameters/                  ← Configuration files
+├── Discussion/                  ← Analysis and interpretation
+└── glossary.md                  ← Terms reference
+```
+## Glossary
+
+* **Contig:** A contiguous, gap-free sequence resulting from the initial assembly.
+* **Scaffold:** A series of contigs joined by gaps (represented by N's) based on long-range information.
+* **Phasing:** The process of separating maternal and paternal genetic contributions in a diploid assembly.
+* **k-mer:** A substring of length *k* used for statistical genomic profiling.
+* **N50:** A statistical measure representing the contig length at which 50% of the total assembly length is contained.
+
+---
+
+## References
+
+* **Cheng, H. et al. (2021).** Haplotype-resolved de novo assembly using phased assembly graphs with hifiasm. *Nature Methods*, 18, 170–175.
+* **Rhie, A. et al. (2020).** Merqury: reference-free quality, completeness, and phasing assessment for genome assemblies. *Genome Biology*, 21, 245.
+* **Zhou, C. et al. (2022).** YaHS: yet another Hi-C scaffolding tool. *Bioinformatics*, 39(1).
+* **Galaxy Training Network.** [VGP Genome Assembly Tutorial](https://training.galaxyproject.org/training-material/topics/assembly/tutorials/vgp_genome_assembly/tutorial.html).
